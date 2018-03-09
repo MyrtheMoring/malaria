@@ -1,7 +1,7 @@
 """ Lab 5 assignment:
 
-Name: Arjen en Myrthe
-Student ID: 11319119
+Name: Arjen Swarstenburg and Myrthe Moring
+Student ID: 11060298, 11319119
 Date: 11-03-2018
 Course: Introduction Computational Science
 
@@ -20,6 +20,7 @@ class Grid:
     def __init__(self, mosq_count, width=100, height=100, population=0.5):
         self.population = population
         self.mosq_count = mosq_count
+        self.human_grid = np.zeros((width, height))
         self.humans = []
         self.mosquitoes = []
         self.width = width
@@ -27,24 +28,40 @@ class Grid:
         self.human_deathcount = 0
         self.day = 1
 
-        self.create_humans(int(self.width*self.height*self.population))
+        self.create_humans(int(self.width*self.height*self.population), 0.1)
         self.create_mosquitoes(self.mosq_count)
 
-    def create_humans(self, number_humans):
-        positions_all = list(itertools.product(range(self.width), range(self.height)))
-        positions = random.sample(positions_all, number_humans)
-        for i in range(1,number_humans):
-            self.humans.append(Humans(positions[i], 1))
-        """ The ratio of immune people (10 percent). """
-        for j in range(int(number_humans*0.1)):
-            self.humans[j].state = 2
+    def create_humans(self, number_humans, immune=0):
+        immune_counter = 0
+        """ The ratio of immune people. """
+        immune_count = int(number_humans*immune)
+        for i in range(number_humans):
+            x_pos = random.randint(0, self.width - 1)
+            y_pos = random.randint(0, self.height - 1)
+            while self.human_grid[x_pos][y_pos] != 0:
+                x_pos = random.randint(0, self.width - 1)
+                y_pos = random.randint(0, self.height - 1)
+            if immune != 0 and immune_counter < immune_count:
+                immune_counter += 1
+                hum = Humans((x_pos, y_pos), 2)
+            else:
+                hum = Humans((x_pos, y_pos), 0)
+            self.humans.append(hum)
+            self.human_grid[x_pos][y_pos] = hum.id
 
-    def create_mosquitoes(self, mosq_count):
+    def create_mosquitoes(self, mosq_count, infected=0):
+        infected_counter = 0
+        """ The ratio of infected mosquitoes. """
+        infected_count = int(mosq_count*infected)
         for i in range(mosq_count):
-            x_pos = random.randint(0, self.width)
-            y_pos = random.randint(0, self.height)
+            x_pos = random.randint(0, self.width - 1)
+            y_pos = random.randint(0, self.height - 1)
             pos = (x_pos, y_pos)
-            self.mosquitoes.append(Mosquitoes(pos, True))
+            if infected != 0 and infected_counter < infected_count:
+                infected_counter += 1
+                self.mosquitoes.append(Mosquitoes(pos, True))
+            else:
+                self.mosquitoes.append(Mosquitoes(pos, False))
 
     def step(self):
         """ Steps per day.
@@ -58,26 +75,34 @@ class Grid:
                 (self.mosquitoes).remove(mosq)
                 del(mosq)
             else:
-                mosq.step(self.width, self.height)
+                mosq.step(self.human_grid, self.humans)
 
+        humans_killed = []
         for hum in self.humans:
             if hum.check():
-                (self.humans).remove(hum)
-                del(hum)
-                self.human_deathcount += 1
-                self.create_humans(2)
+                humans_killed.append(hum)
             else:
                 hum.step()
 
-        # self.print_statistics()
+        for hum in humans_killed:
+            self.kill_human(hum)
+            self.create_humans(1)
+
+        self.print_statistics()
         self.day += 1
+
+    def kill_human(self, human):
+        self.human_grid[human.position[0]][human.position[1]] = 0
+        self.humans.remove(human)
+        del(human)
+        self.human_deathcount += 1
 
     def birth_mosquitoes(self):
         """ Create every day (step) new mosquitoes based on the number of mosquitoes.
         TODO: infected/not infected mosquitoes"""
 
         new_mosq = self.mosq_count * 2
-        self.create_mosquitoes(new_mosq)
+        self.create_mosquitoes(new_mosq, 0.5)
 
     def print_statistics(self):
         print('Day: %d' % self.day)
@@ -87,6 +112,8 @@ class Grid:
         print()
 
 class Humans:
+    idcounter = 0
+
     def __init__(self, position, state=0):
         """
         States:
@@ -95,11 +122,17 @@ class Humans:
         - 2: immune
         - 3: dead
         """
+        self.id = Humans.generate_id()
         self.state = state
-        self.position = (0,0)
+        self.position = position
         self.age = 0
         self.time_infected = 0
         self.infections = 0
+
+    @staticmethod
+    def generate_id():
+        Humans.idcounter += 1
+        return Humans.idcounter
 
     def check(self):
         """
@@ -110,7 +143,10 @@ class Humans:
             - if they are dead (just a check)
             - if 4 times infected (TODO: CHECK of dit zo is)
         """
-        if self.age > 29200 or self.time_infected > 50 or self.state == 3 or self.infections > 4:
+        if self.age >= 29200 or self.state == 3:
+            return True
+
+        if (self.time_infected >= 50 or self.infections >= 4) and self.state != 2:
             return True
 
     def step(self):
@@ -127,8 +163,11 @@ class Mosquitoes:
         self.human = None
         self.age = 0
 
-    def random_walk_Moore(self, width, height):
+    def random_walk_Moore(self, grid):
         """ Random walk: check the grid borders. """
+        width, height = grid.shape
+        width -= 1
+        height -= 1
         change_pos = (random.randint(-1,1), random.randint(-1,1))
         while change_pos == (0,0):
             change_pos = (random.randint(-1,1), random.randint(-1,1))
@@ -143,21 +182,32 @@ class Mosquitoes:
 
         self.position = (new_x,new_y)
 
+    def human_check(self, grid, humans):
+        hum_id = grid[self.position[0]][self.position[1]]
+        if hum_id != 0:
+            for hum in humans:
+                if hum.id == hum_id:
+                    self.human = hum
+        else:
+            self.human = None
+
     def check(self):
         """
         Check if Mosquito is going to die.
         Return True if dead.
         """
-        if self.hungry > 3 or self.age > 14:
+        if self.hungry > 3 or self.age >= 14:
             return True
 
-    def step(self, width, height):
+    def step(self, grid, humans):
         """ The step function for the mosquitoes. """
         self.age += 1
         self.hungry += 1
-        self.random_walk_Moore(width, height)
+        self.random_walk_Moore(grid)
+        self.human_check(grid, humans)
         if self.human != None:
-            self.bite()
+            if self.hungry >= 0:
+                self.bite()
 
     def bite(self):
         """ Check if the mosquitoe is infected.
@@ -165,9 +215,13 @@ class Mosquitoes:
         self.hungry = -3
         if self.infected:
             if self.human.state == 1:
-                self.human.infections += 1
+                #self.human.infections += 1
+                self.human.state = 1
             else:
                 self.human.state = 1
+        else:
+            if self.human.state == 1:
+                self.infected = True
 
 if __name__ == '__main__':
     import collections
@@ -178,16 +232,16 @@ if __name__ == '__main__':
     from random import randint
     from collections import Counter
 
-    malaria_grid = Grid(20)
+    malaria_grid = Grid(20, population=0.1)
     number_mosquitoes = []
     number_humans = []
-    for i in range(100):
+    for i in range(500):
         number_mosquitoes.append(len(malaria_grid.mosquitoes))
         number_humans.append(len(malaria_grid.humans))
         malaria_grid.step()
 
-    plt.plot(range(100), number_mosquitoes)
-    plt.xlabel("Days. ")
-    plt.ylabel("Number of mosquitoes. ")
-    plt.title("Number of mosquitoes per day. ")
-    plt.show()
+    #plt.plot(range(100), number_mosquitoes)
+    #plt.xlabel("Days. ")
+    #plt.ylabel("Number of mosquitoes. ")
+    #plt.title("Number of mosquitoes per day. ")
+    #plt.show()
