@@ -5,30 +5,16 @@ Student ID: 11319119
 Date: 11-03-2018
 Course: Introduction Computational Science
 
+Country: Sierra Leone
+https://wwwnc.cdc.gov/travel/yellowbook/2018/infectious-diseases-related-to-travel/yellow-fever-malaria-information-by-country/sierra-leone
+http://www.afro.who.int/sites/default/files/2017-05/mcsp.pdf
 """
 
 import numpy as np
 import math
 import random
 import itertools
-
-# def decimal_to_base_k(n, k):
-#     """Converts a given decimal (i.e. base-10 integer) to a list containing the
-#     base-k equivalant.
-#     For example, for n=34 and k=3 this function should return [1, 0, 2, 1]."""
-#
-#     base = np.base_repr(n, k)
-#     return (list(map(int, base)))
-#
-# def base_to_decimal(base, k):
-#     """Converts a list containing a base-k number into a decimal.
-#     (for convenience) """
-#
-#     n = 0
-#     for i, x in enumerate(base):
-#         n += x * k**(len(base)-i-1)
-#     return n
-
+import matplotlib.pyplot as plt
 
 class Grid:
     def __init__(self, mosq_count, width=100, height=100, population=0.5):
@@ -41,15 +27,17 @@ class Grid:
         self.human_deathcount = 0
         self.day = 1
 
-        self.create_humans()
+        self.create_humans(int(self.width*self.height*self.population))
         self.create_mosquitoes(self.mosq_count)
 
-    def create_humans(self):
-        number_humans = int(self.width*self.height*self.population)
+    def create_humans(self, number_humans):
         positions_all = list(itertools.product(range(self.width), range(self.height)))
         positions = random.sample(positions_all, number_humans)
-        for i in range(number_humans):
+        for i in range(1,number_humans):
             self.humans.append(Humans(positions[i], 1))
+        """ The ratio of immune people (10 percent). """
+        for j in range(int(number_humans*0.1)):
+            self.humans[j].state = 2
 
     def create_mosquitoes(self, mosq_count):
         for i in range(mosq_count):
@@ -59,7 +47,10 @@ class Grid:
             self.mosquitoes.append(Mosquitoes(pos, True))
 
     def step(self):
-        """ Steps per day """
+        """ Steps per day.
+        - first new mosquitoes are born
+        - check which mosquitoe still alive
+        - check which humans are going to die """
         self.birth_mosquitoes()
 
         for mosq in self.mosquitoes:
@@ -74,23 +65,26 @@ class Grid:
                 (self.humans).remove(hum)
                 del(hum)
                 self.human_deathcount += 1
+                self.create_humans(2)
             else:
                 hum.step()
 
-        print('Day: %d' % self.day)
-        print('Mosquitoes alive: %d' % len(self.mosquitoes))
-        print('Humans alive: %d' % len(self.humans))
-        print('Human deathcount: %d' % self.human_deathcount)
-        print()
-
+        # self.print_statistics()
         self.day += 1
 
     def birth_mosquitoes(self):
         """ Create every day (step) new mosquitoes based on the number of mosquitoes.
         TODO: infected/not infected mosquitoes"""
 
-        new_mosq = self.mosq_count * 8
+        new_mosq = self.mosq_count * 2
         self.create_mosquitoes(new_mosq)
+
+    def print_statistics(self):
+        print('Day: %d' % self.day)
+        print('Mosquitoes alive: %d' % len(self.mosquitoes))
+        print('Humans alive: %d' % len(self.humans))
+        print('Human deathcount: %d' % self.human_deathcount)
+        print()
 
 class Humans:
     def __init__(self, position, state=0):
@@ -105,13 +99,18 @@ class Humans:
         self.position = (0,0)
         self.age = 0
         self.time_infected = 0
+        self.infections = 0
 
     def check(self):
         """
         Check if Human is going to die.
-        Return True if dead.
+        Return True if dead:
+            - if older than 80 years
+            - if 50 days infected
+            - if they are dead (just a check)
+            - if 4 times infected (TODO: CHECK of dit zo is)
         """
-        if self.age > 29200 or self.time_infected > 30:
+        if self.age > 29200 or self.time_infected > 50 or self.state == 3 or self.infections > 4:
             return True
 
     def step(self):
@@ -129,6 +128,7 @@ class Mosquitoes:
         self.age = 0
 
     def random_walk_Moore(self, width, height):
+        """ Random walk: check the grid borders. """
         change_pos = (random.randint(-1,1), random.randint(-1,1))
         while change_pos == (0,0):
             change_pos = (random.randint(-1,1), random.randint(-1,1))
@@ -152,21 +152,22 @@ class Mosquitoes:
             return True
 
     def step(self, width, height):
+        """ The step function for the mosquitoes. """
         self.age += 1
+        self.hungry += 1
         self.random_walk_Moore(width, height)
         if self.human != None:
             self.bite()
 
     def bite(self):
-        """ Check if the mosquitoe is infected. """
+        """ Check if the mosquitoe is infected.
+        If human is infected, """
         self.hungry = -3
         if self.infected:
             if self.human.state == 1:
-                self.human.state = 4
+                self.human.infections += 1
             else:
                 self.human.state = 1
-
-
 
 if __name__ == '__main__':
     import collections
@@ -178,5 +179,15 @@ if __name__ == '__main__':
     from collections import Counter
 
     malaria_grid = Grid(20)
-    for i in range(50):
+    number_mosquitoes = []
+    number_humans = []
+    for i in range(100):
+        number_mosquitoes.append(len(malaria_grid.mosquitoes))
+        number_humans.append(len(malaria_grid.humans))
         malaria_grid.step()
+
+    plt.plot(range(100), number_mosquitoes)
+    plt.xlabel("Days. ")
+    plt.ylabel("Number of mosquitoes. ")
+    plt.title("Number of mosquitoes per day. ")
+    plt.show()
