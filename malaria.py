@@ -16,16 +16,40 @@ import random
 import itertools
 import matplotlib.pyplot as plt
 
+def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█'):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        length      - Optional  : character length of bar (Int)
+        fill        - Optional  : bar fill character (Str)
+
+    source: https://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console
+    """
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + '-' * (length - filledLength)
+    print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end = '\r')
+    # Print New Line on Complete
+    if iteration == total:
+        print()
+
 class Grid:
     def __init__(self, mosq_count, width=100, height=100, population=0.5):
         self.population = population
         self.mosq_count = mosq_count
+        # Grid containing the human_id's on the corresponding positions
         self.human_grid = np.zeros((width, height))
         self.humans = []
         self.mosquitoes = []
         self.width = width
         self.height = height
         self.human_deathcount = 0
+        self.human_death_agecount = 0
         self.day = 1
 
         self.create_humans(int(self.width*self.height*self.population), 0.1)
@@ -88,10 +112,11 @@ class Grid:
             self.kill_human(hum)
             self.create_humans(1)
 
-        self.print_statistics()
+        #self.print_statistics()
         self.day += 1
 
     def kill_human(self, human):
+        self.human_agecount += human.age
         self.human_grid[human.position[0]][human.position[1]] = 0
         self.humans.remove(human)
         del(human)
@@ -109,6 +134,12 @@ class Grid:
         print('Mosquitoes alive: %d' % len(self.mosquitoes))
         print('Humans alive: %d' % len(self.humans))
         print('Human deathcount: %d' % self.human_deathcount)
+        if self.human_deathcount != 0:
+            print('Average human age when dying: %f years' % (float(self.human_death_agecount/self.human_deathcount)/365))
+            cumulative_age = 0
+            for hum in self.humans:
+                cumulative_age += hum.age
+            print('Average human age: %f years' % (float(cumulative_age/len(self.humans))/365))
         print()
 
 class Humans:
@@ -215,13 +246,35 @@ class Mosquitoes:
         self.hungry = -3
         if self.infected:
             if self.human.state == 1:
-                #self.human.infections += 1
-                self.human.state = 1
-            else:
+                self.human.infections += 1
+            if self.human.state == 0:
                 self.human.state = 1
         else:
             if self.human.state == 1:
                 self.infected = True
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: %s days_to_simulate" % sys.argv[0])
+        return
+
+    malaria_grid = Grid(20, population=0.1)
+    number_mosquitoes = []
+    number_humans = []
+    days_simulating = int(sys.argv[1])
+    printProgressBar(0, days_simulating, prefix = 'Progress:', suffix = 'Complete', length = 50)
+    for i in range(days_simulating):
+        number_mosquitoes.append(len(malaria_grid.mosquitoes))
+        number_humans.append(len(malaria_grid.humans))
+        malaria_grid.step()
+        printProgressBar(i + 1, days_simulating, prefix = 'Progress:', suffix = 'Complete', length = 50)
+    malaria_grid.print_statistics()
+
+    #plt.plot(range(100), number_mosquitoes)
+    #plt.xlabel("Days. ")
+    #plt.ylabel("Number of mosquitoes. ")
+    #plt.title("Number of mosquitoes per day. ")
+    #plt.show()
 
 if __name__ == '__main__':
     import collections
@@ -229,19 +282,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     import numpy as np
     import random
+    import sys
     from random import randint
     from collections import Counter
-
-    malaria_grid = Grid(20, population=0.1)
-    number_mosquitoes = []
-    number_humans = []
-    for i in range(500):
-        number_mosquitoes.append(len(malaria_grid.mosquitoes))
-        number_humans.append(len(malaria_grid.humans))
-        malaria_grid.step()
-
-    #plt.plot(range(100), number_mosquitoes)
-    #plt.xlabel("Days. ")
-    #plt.ylabel("Number of mosquitoes. ")
-    #plt.title("Number of mosquitoes per day. ")
-    #plt.show()
+    main()
