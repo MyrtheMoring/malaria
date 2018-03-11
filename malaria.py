@@ -229,12 +229,12 @@ class Humans:
         """
         Check if Human is going to die.
         Return True if dead:
-            - if older than 80 years
+            - if older than ca 55 years
             - if 50 days infected
             - if they are dead (just a check)
             - if 10 times infected
         """
-        if self.age >= 29200 or self.state == 3:
+        if self.age >= 20000 or self.state == 3:
             return True
 
         if (self.time_infected >= 50 or self.infections >= 10) and self.state != 2:
@@ -329,6 +329,7 @@ def plot_death_mosq(days, frac_mos, frac_pop):
     plt.plot(range(days), deaths)
     plt.xlabel("Days. ")
     plt.ylabel("Mosquitoes/deaths. ")
+    plt.gca().legend(('mosquitoes','deaths'))
     plt.title("Number of mosquitoes and death of humans per day. ")
     plt.show()
 
@@ -344,6 +345,7 @@ def plot_average_age(days, frac_mos, frac_pop):
     plt.plot(range(days), average_age)
     plt.xlabel("Days. ")
     plt.ylabel("Avergae age when die. ")
+    plt.gca().legend(('average age'))
     plt.title("Number of mosquitoes and death of humans per day. ")
     plt.show()
 
@@ -367,19 +369,19 @@ def main():
     population_fract = 0.4
 
     plot_death_mosq(days_simulating, mosquitoe_fract, population_fract)
+    plot_average_age(days_simulating, mosquitoe_fract, population_fract)
 
-
-            # mean_infections, std_infections = [], []
-            # for i in range(days_simulating):
-            #     infections = []
-            #     for human in malaria_grid.humans:
-            #         infections.append(human.infections)
-            #     mean_infections.append(np.mean(np.array(infections)))
-            #     std_infections.append(np.std(infections))
-            #     malaria_grid.step()
-            #
-            # plt.plot(range(days), mean_infections)
-            # plt.show()
+    # mean_infections, std_infections = [], []
+    # for i in range(days_simulating):
+    #     infections = []
+    #     for human in malaria_grid.humans:
+    #         infections.append(human.infections)
+    #     mean_infections.append(np.mean(np.array(infections)))
+    #     std_infections.append(np.std(infections))
+    #     malaria_grid.step()
+    #
+    # plt.plot(range(days), mean_infections)
+    # plt.show()
 
 if __name__ == '__main__':
     import collections
