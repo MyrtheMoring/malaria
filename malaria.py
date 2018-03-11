@@ -39,39 +39,82 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
         print()
 
 class Grid:
-    def __init__(self, mosq_count, width=100, height=100, population=0.5):
-        self.population = population
-        self.mosq_count = mosq_count
+    def __init__(self, mosq_perc, width=100, height=100, population=0.5):
+        """ Parameters:
+        - mosq_perc = percentage of mosquitoes relative to humans
+        - width, height of the grid based on the country Sierra Leone
+        - population = percentage of human population based on the grid
+        - humans = list of humans on the Grid
+        - mosquitoes = list of mosquitoes on the Grid
+        - human_deathcount = number of died humans
+        - human_death_agecount =
+        - day = counter per day """
+
         # Grid containing the human_id's on the corresponding positions
         self.human_grid = np.zeros((width, height))
-        self.humans = []
-        self.mosquitoes = []
         self.width = width
         self.height = height
-        self.human_deathcount = 0
-        self.human_death_agecount = 0
+
+        self.population = int(self.width*self.height*population)
+        self.mosq_count = int(mosq_perc*self.population)
         self.day = 1
 
-        self.create_humans(int(self.width*self.height*self.population), 0.1)
+        self.humans = []
+        self.mosquitoes = []
+        self.create_humans(self.population, 0.1)
         self.create_mosquitoes(self.mosq_count)
+
+        self.human_deathcount = 0
+        self.human_death_agecount = 0
 
     def create_humans(self, number_humans, immune=0):
         immune_counter = 0
         """ The ratio of immune people. """
         immune_count = int(number_humans*immune)
+        age = 0
+
+        """ A seventh of the people in Sierra Leone lives in the capital
+        city Freetown located in the North West of the country.
+        The x coordinates can be between 0 and 10 percent of the width.
+        The y coordinates can be between 40 percent and 50 percent of the
+        height.These values are based on real data (GoogleMaps and Wikipedia).
+        https://en.wikipedia.org/wiki/Sierra_Leone
+        """
+
+        capital_city_humans = int(number_humans/7)
+        country_humans = number_humans - capital_city_humans
+
         for i in range(number_humans):
-            x_pos = random.randint(0, self.width - 1)
-            y_pos = random.randint(0, self.height - 1)
+            """ 40 percent of the people are between 0-14 years old. """
+            if i > int(number_humans*0.4):
+                age = 1
+            if i < capital_city_humans:
+                x_pos = random.randint(0, int(self.width*0.1))
+                y_pos = random.randint(int(self.height*0.4), int(self.height*0.5))
+            else:
+                x_pos = random.randint(0, self.width - 1)
+                y_pos = random.randint(0, self.height - 1)
             while self.human_grid[x_pos][y_pos] != 0:
                 x_pos = random.randint(0, self.width - 1)
                 y_pos = random.randint(0, self.height - 1)
+
             if immune != 0 and immune_counter < immune_count:
                 immune_counter += 1
-                hum = Humans((x_pos, y_pos), 2)
+                hum = Humans((x_pos, y_pos), 2, 0)
             else:
-                hum = Humans((x_pos, y_pos), 0)
+                hum = Humans((x_pos, y_pos), 0, 0)
             self.humans.append(hum)
             self.human_grid[x_pos][y_pos] = hum.id
+
+    def ages(self, number_humans):
+        """ Create the age structure in Sierra Leone: approximately 40 percent
+        of the people are between the 0 and 14 and 60 percent is between the 15
+        and 64 years old. """
+
+        ages = np.zeros(number_humans)
+        for i in range(int(number_humans*0.6)):
+            ages[i] = 1
+        return ages
 
     def create_mosquitoes(self, mosq_count, infected=0):
         infected_counter = 0
@@ -112,11 +155,11 @@ class Grid:
             self.kill_human(hum)
             self.create_humans(1)
 
-        #self.print_statistics()
+        # self.print_statistics()
         self.day += 1
 
     def kill_human(self, human):
-        self.human_agecount += human.age
+        self.human_death_agecount += human.age
         self.human_grid[human.position[0]][human.position[1]] = 0
         self.humans.remove(human)
         del(human)
@@ -145,7 +188,7 @@ class Grid:
 class Humans:
     idcounter = 0
 
-    def __init__(self, position, state=0):
+    def __init__(self, position, state=0, age=0):
         """
         States:
         - 0: susceptible
@@ -156,14 +199,26 @@ class Humans:
         self.id = Humans.generate_id()
         self.state = state
         self.position = position
-        self.age = 0
+        # age is 0 or 1
+        self.age = age
         self.time_infected = 0
         self.infections = 0
+
+        self.set_age(age)
 
     @staticmethod
     def generate_id():
         Humans.idcounter += 1
         return Humans.idcounter
+
+    def set_age(self, age):
+        """ Set the age of the humans. If the binary variable age is 0, the age
+        is between to 0-14 years (in days). Else, the age is between the 15-64 years
+        (in days). """
+        if age == 0:
+            self.age = random.randint(0, 5113)
+        else:
+            self.age = random.randint(5113, 23375)
 
     def check(self):
         """
@@ -172,12 +227,12 @@ class Humans:
             - if older than 80 years
             - if 50 days infected
             - if they are dead (just a check)
-            - if 4 times infected (TODO: CHECK of dit zo is)
+            - if 10 times infected
         """
         if self.age >= 29200 or self.state == 3:
             return True
 
-        if (self.time_infected >= 50 or self.infections >= 4) and self.state != 2:
+        if (self.time_infected >= 50 or self.infections >= 10) and self.state != 2:
             return True
 
     def step(self):
@@ -255,10 +310,14 @@ class Mosquitoes:
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: %s days_to_simulate" % sys.argv[0])
+        print("Usage: %s days_to_simulate" % days)
         return
 
-    malaria_grid = Grid(20, population=0.1)
+    days = int(sys.argv[1])
+    mosquitoe_fract = 0.2
+    population_fract = 0.1
+    malaria_grid = Grid(mosquitoe_fract, population=0.1)
+
     number_mosquitoes = []
     number_humans = []
     days_simulating = int(sys.argv[1])
@@ -270,11 +329,24 @@ def main():
         printProgressBar(i + 1, days_simulating, prefix = 'Progress:', suffix = 'Complete', length = 50)
     malaria_grid.print_statistics()
 
-    #plt.plot(range(100), number_mosquitoes)
-    #plt.xlabel("Days. ")
-    #plt.ylabel("Number of mosquitoes. ")
-    #plt.title("Number of mosquitoes per day. ")
-    #plt.show()
+    plt.plot(range(days), number_mosquitoes)
+    plt.xlabel("Days. ")
+    plt.ylabel("Number of mosquitoes. ")
+    plt.title("Number of mosquitoes per day. ")
+    # plt.show()
+
+    mean_infections, std_infections = [], []
+    for i in range(days_simulating):
+        infections = []
+        for human in malaria_grid.humans:
+            infections.append(human.infections)
+        infections = np.array(infections)
+        mean_infections.append(np.mean(infections))
+        std_infections.append(np.std(infections))
+
+    plt.plot(range(days), mean_infections)
+    plt.show()
+
 
 if __name__ == '__main__':
     import collections
