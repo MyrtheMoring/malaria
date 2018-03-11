@@ -39,7 +39,7 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
         print()
 
 class Grid:
-    def __init__(self, mosq_perc, width=25, height=34, population=0.5):
+    def __init__(self, mosq_perc, width=50, height=78, population=0.5):
         """ Parameters:
         - mosq_perc = percentage of mosquitoes relative to humans
         - width, height of the grid based on the country Sierra Leone
@@ -84,15 +84,15 @@ class Grid:
         capital_city_humans = int(number_humans/7)
         country_humans = number_humans - capital_city_humans
 
-        age_0 = int(number_humans*0.4)
+        # age_0 = int(number_humans*0.4)
         width_freetown = int(self.width*0.1)
         height_freetown_1 = int(self.height*0.4)
         height_freetown_2 = int(self.height*0.5)
 
         for i in range(number_humans):
             """ 40 percent of the people are between 0-14 years old. """
-            if i > age_0:
-                age = 1
+            # if i > age_0:
+            #     age = 1
             if i < capital_city_humans:
                 x_pos = random.randint(0, width_freetown)
                 y_pos = random.randint(height_freetown_1, height_freetown_2)
@@ -111,16 +111,16 @@ class Grid:
             self.humans.append(hum)
             self.human_grid[x_pos][y_pos] = hum.id
 
-    def ages(self, number_humans):
-        """ Create the age structure in Sierra Leone: approximately 40 percent
-        of the people are between the 0 and 14 and 60 percent is between the 15
-        and 64 years old. """
-
-        ages = np.zeros(number_humans)
-        age1 = int(number_humans*0.6)
-        for i in range(age_1):
-            ages[i] = 1
-        return ages
+    # def ages(self, number_humans):
+    #     """ Create the age structure in Sierra Leone: approximately 40 percent
+    #     of the people are between the 0 and 14 and 60 percent is between the 15
+    #     and 64 years old. """
+    #
+    #     ages = np.zeros(number_humans)
+    #     age1 = int(number_humans*0.6)
+    #     for i in range(age_1):
+    #         ages[i] = 1
+    #     return ages
 
     def create_mosquitoes(self, mosq_count, infected=0):
         infected_counter = 0
@@ -172,10 +172,9 @@ class Grid:
         self.human_deathcount += 1
 
     def birth_mosquitoes(self):
-        """ Create every day (step) new mosquitoes based on the number of mosquitoes.
-        TODO: infected/not infected mosquitoes"""
+        """ Create every day (step) new mosquitoes based on the number of mosquitoes."""
 
-        new_mosq = self.mosq_count * 1
+        new_mosq = int(self.mosq_count * 1.05)
         self.create_mosquitoes(new_mosq, 0.5)
 
     def print_statistics(self):
@@ -334,6 +333,20 @@ def plot_death_mosq(days, frac_mos, frac_pop):
     plt.show()
 
 
+def plot_average_age(days, frac_mos, frac_pop):
+    malaria_grid = Grid(frac_mos, population=frac_pop)
+
+    average_age = []
+    for i in range(days):
+        average_age.append(malaria_grid.human_death_agecount)
+        malaria_grid.step()
+
+    plt.plot(range(days), average_age)
+    plt.xlabel("Days. ")
+    plt.ylabel("Avergae age when die. ")
+    plt.title("Number of mosquitoes and death of humans per day. ")
+    plt.show()
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: %s days_to_simulate" % days)
@@ -341,14 +354,14 @@ def main():
 
     days = int(sys.argv[1])
     days_simulating = int(sys.argv[1])
-    # malaria_grid = Grid(0.5, population=0.5)
-    # printProgressBar(0, days_simulating, prefix = 'Progress:', suffix = 'Complete', length = 50)
-    #
-    # # Statistics
-    # for i in range(days_simulating):
-    #     malaria_grid.step()
-    #     printProgressBar(i + 1, days_simulating, prefix = 'Progress:', suffix = 'Complete', length = 50)
-    # malaria_grid.print_statistics()
+    malaria_grid = Grid(0.5, population=0.5)
+    printProgressBar(0, days_simulating, prefix = 'Progress:', suffix = 'Complete', length = 50)
+
+    # Statistics
+    for i in range(days_simulating):
+        malaria_grid.step()
+        printProgressBar(i + 1, days_simulating, prefix = 'Progress:', suffix = 'Complete', length = 50)
+    malaria_grid.print_statistics()
 
     mosquitoe_fract = 0.4
     population_fract = 0.4
