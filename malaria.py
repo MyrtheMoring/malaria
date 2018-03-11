@@ -47,7 +47,7 @@ class Grid:
         - humans = list of humans on the Grid
         - mosquitoes = list of mosquitoes on the Grid
         - human_deathcount = number of died humans
-        - human_death_agecount =
+        - human_death_agecount = number of all ages of humans died combined.
         - day = counter per day """
 
         # Grid containing the human_id's on the corresponding positions
