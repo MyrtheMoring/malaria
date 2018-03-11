@@ -161,6 +161,9 @@ class Grid:
             self.kill_human(hum)
             self.create_humans(1)
 
+        # Make 5% of the population immune
+        self.make_percentage_immune(0.05)
+
         # self.print_statistics()
         self.day += 1
 
@@ -189,6 +192,21 @@ class Grid:
                 cumulative_age += hum.age
             print('Average human age: %f years' % (float(cumulative_age/len(self.humans))/365))
         print()
+
+    def make_percentage_immune(self, immune):
+        immune_count = int(len(self.humans) * immune)
+        max_retries = int(len(self.humans) * 0.9)
+        counter = 0
+
+        for x in range(immune_count):
+            index = random.randint(0, len(self.humans) - 1)
+            while self.humans[index].state == 2 and counter < max_retries:
+                counter += 1
+                index = random.randint(0, len(self.humans) - 1)
+            if self.humans[index].state == 2:
+                return
+            else:
+                self.humans[index].state = 2
 
 class Humans:
     idcounter = 0
