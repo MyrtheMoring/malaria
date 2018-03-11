@@ -175,7 +175,7 @@ class Grid:
         """ Create every day (step) new mosquitoes based on the number of mosquitoes.
         TODO: infected/not infected mosquitoes"""
 
-        new_mosq = self.mosq_count * 2
+        new_mosq = self.mosq_count * 1
         self.create_mosquitoes(new_mosq, 0.5)
 
     def print_statistics(self):
@@ -315,52 +315,58 @@ class Mosquitoes:
             if self.human.state == 1:
                 self.infected = True
 
+def plot_death_mosq(days, frac_mos, frac_pop):
+    malaria_grid = Grid(frac_mos, population=frac_pop)
+
+    """ Plot deaths and mosquitoes per day. """
+    number_mosquitoes = []
+    deaths = []
+    for i in range(days):
+        deaths.append(malaria_grid.human_deathcount)
+        number_mosquitoes.append(len(malaria_grid.mosquitoes))
+        malaria_grid.step()
+
+    plt.plot(range(days), number_mosquitoes)
+    plt.plot(range(days), deaths)
+    plt.xlabel("Days. ")
+    plt.ylabel("Mosquitoes/deaths. ")
+    plt.title("Number of mosquitoes and death of humans per day. ")
+    plt.show()
+
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: %s days_to_simulate" % days)
         return
 
     days = int(sys.argv[1])
-    mosquitoe_fract = 0.2
-    population_fract = 0.2
-    malaria_grid = Grid(mosquitoe_fract, population=population_fract)
-
-    number_mosquitoes = []
-    number_humans = []
     days_simulating = int(sys.argv[1])
-    printProgressBar(0, days_simulating, prefix = 'Progress:', suffix = 'Complete', length = 50)
-    for i in range(days_simulating):
-        number_mosquitoes.append(len(malaria_grid.mosquitoes))
-        number_humans.append(len(malaria_grid.humans))
-        malaria_grid.step()
-        printProgressBar(i + 1, days_simulating, prefix = 'Progress:', suffix = 'Complete', length = 50)
-    malaria_grid.print_statistics()
-
-    plt.plot(range(days), number_mosquitoes)
-    # plt.show()
-
-    # mean_infections, std_infections = [], []
-    # for i in range(days_simulating):
-    #     infections = []
-    #     for human in malaria_grid.humans:
-    #         infections.append(human.infections)
-    #     mean_infections.append(np.mean(np.array(infections)))
-    #     std_infections.append(np.std(infections))
-    #     malaria_grid.step()
+    # malaria_grid = Grid(0.5, population=0.5)
+    # printProgressBar(0, days_simulating, prefix = 'Progress:', suffix = 'Complete', length = 50)
     #
-    # plt.plot(range(days), mean_infections)
-    # plt.show()
+    # # Statistics
+    # for i in range(days_simulating):
+    #     malaria_grid.step()
+    #     printProgressBar(i + 1, days_simulating, prefix = 'Progress:', suffix = 'Complete', length = 50)
+    # malaria_grid.print_statistics()
 
-    """ Plot deaths and mosquitoes per day. """
-    deaths = []
-    for i in range(days_simulating):
-        deaths.append(malaria_grid.human_deathcount)
-        malaria_grid.step()
-    plt.plot(range(days), deaths)
-    plt.xlabel("Days. ")
-    plt.ylabel("Mosquitoes/deaths. ")
-    plt.title("Number of mosquitoes and deaths per day. ")
-    plt.show()
+    mosquitoe_fract = 0.4
+    population_fract = 0.4
+
+    plot_death_mosq(days_simulating, mosquitoe_fract, population_fract)
+
+
+            # mean_infections, std_infections = [], []
+            # for i in range(days_simulating):
+            #     infections = []
+            #     for human in malaria_grid.humans:
+            #         infections.append(human.infections)
+            #     mean_infections.append(np.mean(np.array(infections)))
+            #     std_infections.append(np.std(infections))
+            #     malaria_grid.step()
+            #
+            # plt.plot(range(days), mean_infections)
+            # plt.show()
 
 if __name__ == '__main__':
     import collections
