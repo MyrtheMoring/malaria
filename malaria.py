@@ -39,7 +39,7 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
         print()
 
 class Grid:
-    def __init__(self, mosq_perc, width=100, height=100, population=0.5):
+    def __init__(self, mosq_perc, width=25, height=34, population=0.5):
         """ Parameters:
         - mosq_perc = percentage of mosquitoes relative to humans
         - width, height of the grid based on the country Sierra Leone
@@ -84,13 +84,18 @@ class Grid:
         capital_city_humans = int(number_humans/7)
         country_humans = number_humans - capital_city_humans
 
+        age_0 = int(number_humans*0.4)
+        width_freetown = int(self.width*0.1)
+        height_freetown_1 = int(self.height*0.4)
+        height_freetown_2 = int(self.height*0.5)
+
         for i in range(number_humans):
             """ 40 percent of the people are between 0-14 years old. """
-            if i > int(number_humans*0.4):
+            if i > age_0:
                 age = 1
             if i < capital_city_humans:
-                x_pos = random.randint(0, int(self.width*0.1))
-                y_pos = random.randint(int(self.height*0.4), int(self.height*0.5))
+                x_pos = random.randint(0, width_freetown)
+                y_pos = random.randint(height_freetown_1, height_freetown_2)
             else:
                 x_pos = random.randint(0, self.width - 1)
                 y_pos = random.randint(0, self.height - 1)
@@ -112,7 +117,8 @@ class Grid:
         and 64 years old. """
 
         ages = np.zeros(number_humans)
-        for i in range(int(number_humans*0.6)):
+        age1 = int(number_humans*0.6)
+        for i in range(age_1):
             ages[i] = 1
         return ages
 
@@ -240,6 +246,7 @@ class Humans:
         if self.state == 1:
             self.time_infected += 1
 
+
 class Mosquitoes:
     def __init__(self, position, infected=False):
         self.position = position
@@ -315,8 +322,8 @@ def main():
 
     days = int(sys.argv[1])
     mosquitoe_fract = 0.2
-    population_fract = 0.1
-    malaria_grid = Grid(mosquitoe_fract, population=0.1)
+    population_fract = 0.2
+    malaria_grid = Grid(mosquitoe_fract, population=population_fract)
 
     number_mosquitoes = []
     number_humans = []
@@ -330,23 +337,30 @@ def main():
     malaria_grid.print_statistics()
 
     plt.plot(range(days), number_mosquitoes)
-    plt.xlabel("Days. ")
-    plt.ylabel("Number of mosquitoes. ")
-    plt.title("Number of mosquitoes per day. ")
     # plt.show()
 
-    mean_infections, std_infections = [], []
+    # mean_infections, std_infections = [], []
+    # for i in range(days_simulating):
+    #     infections = []
+    #     for human in malaria_grid.humans:
+    #         infections.append(human.infections)
+    #     mean_infections.append(np.mean(np.array(infections)))
+    #     std_infections.append(np.std(infections))
+    #     malaria_grid.step()
+    #
+    # plt.plot(range(days), mean_infections)
+    # plt.show()
+
+    """ Plot deaths and mosquitoes per day. """
+    deaths = []
     for i in range(days_simulating):
-        infections = []
-        for human in malaria_grid.humans:
-            infections.append(human.infections)
-        infections = np.array(infections)
-        mean_infections.append(np.mean(infections))
-        std_infections.append(np.std(infections))
-
-    plt.plot(range(days), mean_infections)
+        deaths.append(malaria_grid.human_deathcount)
+        malaria_grid.step()
+    plt.plot(range(days), deaths)
+    plt.xlabel("Days. ")
+    plt.ylabel("Mosquitoes/deaths. ")
+    plt.title("Number of mosquitoes and deaths per day. ")
     plt.show()
-
 
 if __name__ == '__main__':
     import collections
