@@ -162,7 +162,7 @@ class Grid:
             self.create_humans(1)
 
         # Make 5% of the population immune
-        self.make_percentage_immune(0.05)
+        # self.make_percentage_immune(0.05)
 
         # self.print_statistics()
         self.day += 1
@@ -348,7 +348,7 @@ def plot_death_mosq(days, frac_mos, frac_pop):
     plt.xlabel("Days. ")
     plt.ylabel("Mosquitoes/deaths. ")
     plt.gca().legend(('mosquitoes','deaths'))
-    plt.title("Number of mosquitoes and death of humans per day. ")
+    plt.title("Number of mosquitoes and death of humans per day. \n Densities: " + str(frac_mos) +", "+ str(frac_pop))
     plt.show()
 
 
@@ -363,8 +363,8 @@ def plot_average_age(days, frac_mos, frac_pop):
     plt.plot(range(days), average_age)
     plt.xlabel("Days. ")
     plt.ylabel("Avergae age when die. ")
-    plt.gca().legend(('average age'))
-    plt.title("Number of mosquitoes and death of humans per day. ")
+    plt.gca().legend(('age'))
+    plt.title("Average age when humans die because of malaria. \n Densities: " + str(frac_mos) +", "+ str(frac_pop))
     plt.show()
 
 def main():
@@ -383,7 +383,7 @@ def main():
         printProgressBar(i + 1, days_simulating, prefix = 'Progress:', suffix = 'Complete', length = 50)
     malaria_grid.print_statistics()
 
-    mosquitoe_fract = 0.4
+    mosquitoe_fract = 0.1
     population_fract = 0.4
 
     plot_death_mosq(days_simulating, mosquitoe_fract, population_fract)
